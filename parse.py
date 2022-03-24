@@ -75,6 +75,7 @@ def parse_to_MongoDB_Query_projection(XpathQuery):
     MongoDB_Query_projection.setdefault(MongoDB_Query_projection_path, 1)
     return MongoDB_Query_projection
 
+
 # todo: 根据 XpathQuery 获得 filter
 def parse_to_MongoDB_Query_filter(MongoDB_previous_path, XpathQuery):
     """
@@ -140,6 +141,7 @@ def parse_to_MongoDB_Query_filter(MongoDB_previous_path, XpathQuery):
     # todo:更新 Mongo_projection
     return MongoDB_Query_filter.copy()
 
+
 # todo: 根据 parse_to_MongoDB_Query_filter方法，切割后产生的 split_XpathQuery 返回对应filter
 def generate_MongoDB_filters(MongoDB_previous_path, split_XpathQuery):
     """
@@ -151,6 +153,105 @@ def generate_MongoDB_filters(MongoDB_previous_path, split_XpathQuery):
     """
     filters = {}
     # todo: 正则表达式需要的 pattern:
+    pattern_and = re.compile('\sand\s')
+
+    # todo：先判断是否有 predicate
+    pattern_predicate = re.compile('\[.*\]\/$')  # 注意这里匹配的时候 要求以']'紧接着'/'结尾，以达到"]"是最后一个的要求，否则嵌套的[]会对后面代码产生错误
+    search_result = pattern_predicate.search(split_XpathQuery)
+    if (search_result == None):
+        # 如股没有predicate 返回空 {}
+        return filters
+    else:
+        # todo:匹配 axis child::
+        pattern_axis_child_path = re.compile(
+            '^child\:\:[a-z]*')  # 例如： child::artist[child::name='Anang Ashanty']/ 返回匹配结果 child::artist
+        match_result = pattern_axis_child_path.match(split_XpathQuery).span()
+        generate_path = split_XpathQuery[7:match_result[1]]  # 读出紧跟在 child::后面的 path 名称
+
+        if (MongoDB_previous_path == ""):
+            MongoDB_previous_path = generate_path
+        else:
+            MongoDB_previous_path = MongoDB_previous_path + '.' + generate_path
+
+        predicate = split_XpathQuery[
+                    match_result[1] + 1:len(split_XpathQuery) - 2]  # 去掉axis 和 "[]/", 读出[predicate]里面的内容 predicate
+
+        # todo：这里考虑 [] 里边嵌套 []的情况，即 predicate 里面有predicate
+        pattern_predicate_2 = re.compile('\[.*\]')
+        search_result = pattern_predicate_2.search(predicate)
+        if (search_result == None):
+            # todo:condition 1：predicate 里面 没有predicate
+            temp_filters = parse_predicate(MongoDB_previous_path, predicate)
+            filters.update(temp_filters)
+
+        else:
+            # todo:condition 2 predicate 里面 还有predicate 把 刚刚那层 []去掉之后 发现现在里边还有[]
+            # 极端情况 里边还有 "and"
+            # 例如去掉外层[] 之后 predicate为：
+            # child::artists/child::artist[child::age>=20 and child::age<=30] and child::artists/child::artist[child::country='Indonesia']
+            # 或
+            # child::artists/child::artist/child::name='Anang Ashanty' and child::artists/child::artist[child::country='Indonesia']
+            # 或
+            #
+
+            search_result = pattern_and.search(predicate)
+            if (search_result == None):
+                # todo: condition 2.1 predicate 里面 含有 "[]", 不含有 "and"
+                sub_filters = parse_to_MongoDB_Query_filter(MongoDB_previous_path, predicate + '/')
+                filters.update(sub_filters)
+            else:
+                # todo: condition 2.2 predicate 里面 含有 "[]", 而且含有 "and"
+                # todo: 需要从左到右 挨个看当前 "and" 是否能切割
+                split_index = [0, 0]
+                while True:
+                    # todo:查找下一个 可以被切割的 "and"
+                    search_result = pattern_and.search(predicate, split_index[1])
+                    if (search_result == None):
+                        # todo：扫描到了predicate的结尾
+                        # todo：需要判断 predicate 是否含有 "[]"
+                        pattern_predicate_3 = re.compile('\[.*\]')
+                        search_result = pattern_predicate_3.search(predicate)
+                        if (search_result == None):
+                            # todo:predicate 不含 "[]"
+                            temp_filters = parse_predicate(MongoDB_previous_path, predicate)
+                            filters.update(temp_filters)
+                        else:
+                            # todo:predicate 含 "[]"
+                            sub_filters = parse_to_MongoDB_Query_filter(MongoDB_previous_path, predicate + '/')
+                            filters.update(sub_filters)
+                        break
+
+                    split_index = search_result.span()
+                    split_predicate = predicate[0:split_index[0]]
+                    if (canSplit(split_predicate)):
+                        # todo：找到了 可以被切割的 "and"
+                        # todo:需要判断 and 前被切割下来的 split_predicate 是否含有 "[]"
+
+                        pattern_predicate_3 = re.compile('\[.*\]')
+                        search_result = pattern_predicate_3.search(split_predicate)
+                        if (search_result == None):
+                            # todo:被切割下来的 "and" 前的 predicate 不含 "[]"
+                            temp_filters = parse_predicate(MongoDB_previous_path, split_predicate)
+                            filters.update(temp_filters)
+                        else:
+                            # todo:被切割下来的 "and" 前的 predicate 含 "[]"
+
+                            sub_filters = parse_to_MongoDB_Query_filter(MongoDB_previous_path, split_predicate + '/')
+                            filters.update(sub_filters)
+
+                        # todo:更新 predicate
+                        predicate = predicate[split_index[1]:]
+
+                        continue
+                    else:
+                        # todo：这个 "and" 不可以被切割
+                        continue
+        return filters.copy()
+
+
+def parse_predicate(MongoDB_previous_path, predicate):
+    filters = {}
+    # todo: 正则表达式需要的 pattern:
     pattern_greater_or_equal_than = re.compile('\>\=')
     pattern_greater_than = re.compile('\>')
     pattern_less_or_equal_than = re.compile('\<\=')
@@ -159,130 +260,102 @@ def generate_MongoDB_filters(MongoDB_previous_path, split_XpathQuery):
 
     pattern_String_value = re.compile('^\'[A-Za-z\s]+\'$')
 
-    # todo：先判断是否有 predicate
-    pattern_predicate = re.compile('\[.*\]\/$') # 注意这里匹配的时候 要求以']'紧接着'/'结尾，以达到"]"是最后一个的要求，否则嵌套的[]会对后面代码产生错误
-    search_result = pattern_predicate.search(split_XpathQuery)
-    if (search_result == None):
-        # 如股没有predicate 返回空 {}
-        return filters
-    else:
-        # todo:匹配 axis child::
-        pattern_axis_child_path = re.compile('^child\:\:[a-z]*') # 例如： child::artist[child::name='Anang Ashanty']/ 返回匹配结果 child::artist
-        match_result = pattern_axis_child_path.match(split_XpathQuery).span()
-        generate_path = split_XpathQuery[7:match_result[1]] # 读出紧跟在 child::后面的 path 名称
+    # todo:如果有 "and" predicate 需要拆分成小的 predicate_atom
+    # 例如 child::year>=1990 and child::year<=2000
+    predicate_split_result = predicate.split(sep=' and ')
 
-        if (MongoDB_previous_path == ""):
-            MongoDB_previous_path = generate_path
-        else:
-            MongoDB_previous_path = MongoDB_previous_path + '.' + generate_path
+    # todo：解析每个 predicate_atom 的语义
+    for predicate_atom in predicate_split_result:
+        # todo: 解析 axis
+        # todo：还需要考虑其他axis的情况？
 
-        predicate = split_XpathQuery[match_result[1] + 1:len(split_XpathQuery) - 2] #去掉axis 和 [], 读出[]里面的内容
+        # todo：axis 为 child的情况
+        pattern_axis_child_tagname_slash = re.compile('^child\:\:[a-zA-Z]+\/')  # 匹配诸如 child::artist/
+        pattern_axis_child = re.compile('^child\:\:')  # 匹配诸如 child::
 
-        # todo：这里考虑 [] 里边嵌套 []的情况，即 predicate 里面有predicate
-        pattern_predicate_2 = re.compile('\[.*\]$')
-        search_result = pattern_predicate_2.search(predicate)
-        if (search_result == None):
-            # todo:condition 1：predicate 里面 没有predicate
+        temp_prediction = predicate_atom
+        temp_path = MongoDB_previous_path
 
-            # todo:如果有 "and" predicate 需要拆分成小的 predicate_atom
-            # 例如 child::year>=1990 and child::year<=2000
-            predicate_split_result = predicate.split(sep=' and ')
+        # todo: 要考虑 多级路径的情况 例如：child::artist/child::name='Anang Ashanty'
+        match_result = pattern_axis_child_tagname_slash.match(temp_prediction)
+        while (match_result != None):
+            # if (match_result != None):
+            temp_path = temp_path + '.' + temp_prediction[7:match_result.span()[1] - 1]
+            temp_prediction = temp_prediction[match_result.span()[1]:]
+            match_result = pattern_axis_child_tagname_slash.match(temp_prediction)
 
-            # todo：解析每个 predicate_atom 的语义
-            for predicate_atom in predicate_split_result:
-                # todo: 解析 axis
-                # todo：还需要考虑其他axis的情况？
+        match_result = pattern_axis_child.match(temp_prediction)
+        temp_prediction = temp_prediction[match_result.span()[1]:]
 
-                # todo：axis 为 child的情况
-                pattern_axis_child_tagname_slash = re.compile('^child\:\:[a-zA-Z]+\/') # 匹配诸如 child::artist/
-                pattern_axis_child = re.compile('^child\:\:') # 匹配诸如 child::
+        # todo：解析 内容
+        # todo: >=
+        search_result = pattern_greater_or_equal_than.search(temp_prediction)
+        if (search_result != None):
+            key = temp_path + "." + temp_prediction[0:search_result.span()[0]]
+            value = int(temp_prediction[search_result.span()[1]:])
+            if (key in filters):
+                previous_value = filters.pop(key)
+                previous_value.setdefault("$gte", value)
+                filters.setdefault(key, previous_value)
+            else:
+                filters.setdefault(key, {"$gte": value})
+            continue
 
-                temp_prediction = predicate_atom
-                temp_path = MongoDB_previous_path
+        # todo:>
+        search_result = pattern_greater_than.search(temp_prediction)
+        if (search_result != None):
+            key = temp_path + "." + temp_prediction[0:search_result.span()[0]]
+            value = int(temp_prediction[search_result.span()[1]:])
+            if (key in filters):
+                previous_value = filters.pop(key)
+                previous_value.setdefault("$gt", value)
+                filters.setdefault(key, previous_value)
+            else:
+                filters.setdefault(key, {"$gt": value})
+            continue
 
-                # todo: 要考虑 多级路径的情况 例如：child::artist/child::name='Anang Ashanty'
-                match_result = pattern_axis_child_tagname_slash.match(temp_prediction)
-                while (match_result != None):
-                    # if (match_result != None):
-                    temp_path = temp_path + '.' + temp_prediction[7:match_result.span()[1] - 1]
-                    temp_prediction = temp_prediction[match_result.span()[1]:]
-                    match_result = pattern_axis_child_tagname_slash.match(temp_prediction)
+        # todo:<=
+        search_result = pattern_less_or_equal_than.search(temp_prediction)
+        if (search_result != None):
+            key = temp_path + "." + temp_prediction[0:search_result.span()[0]]
+            value = int(temp_prediction[search_result.span()[1]:])
+            if (key in filters):
+                previous_value = filters.pop(key)
+                previous_value.setdefault("$lte", value)
+                filters.setdefault(key, previous_value)
+            else:
+                filters.setdefault(key, {"$lte": value})
+            continue
 
-                match_result = pattern_axis_child.match(temp_prediction)
-                temp_prediction = temp_prediction[match_result.span()[1]:]
+        search_result = pattern_less_than.search(temp_prediction)
+        # todo:<
+        if (search_result != None):
+            key = temp_path + "." + temp_prediction[0:search_result.span()[0]]
+            value = int(temp_prediction[search_result.span()[1]:])
+            if (key in filters):
+                previous_value = filters.pop(key)
+                previous_value.setdefault("$lt", value)
+                filters.setdefault(key, previous_value)
+            else:
+                filters.setdefault(key, {"$lt": value})
+            continue
 
-                # todo：解析 内容
-                # todo: >=
-                search_result = pattern_greater_or_equal_than.search(temp_prediction)
-                if (search_result != None):
-                    key = temp_path + "." + temp_prediction[0:search_result.span()[0]]
-                    value = int(temp_prediction[search_result.span()[1]:])
-                    if (key in filters):
-                        previous_value = filters.pop(key)
-                        previous_value.setdefault("$gte", value)
-                        filters.setdefault(key, previous_value)
-                    else:
-                        filters.setdefault(key, {"$gte": value})
-                    continue
+        # todo:=
+        search_result = pattern_equal_than.search(temp_prediction)
+        if (search_result != None):
+            key = temp_path + "." + temp_prediction[0:search_result.span()[0]]
+            value = temp_prediction[search_result.span()[1]:]
+            # todo:判断是 int 还是 string
+            match_result = pattern_String_value.match(value)
+            if (match_result == None):
+                value = int(value)
+            else:
+                value = value[1:len(value) - 1]
+            filters.setdefault(key, value)
+            continue
 
-                # todo:>
-                search_result = pattern_greater_than.search(temp_prediction)
-                if (search_result != None):
-                    key = temp_path + "." + temp_prediction[0:search_result.span()[0]]
-                    value = int(temp_prediction[search_result.span()[1]:])
-                    if (key in filters):
-                        previous_value = filters.pop(key)
-                        previous_value.setdefault("$gt", value)
-                        filters.setdefault(key, previous_value)
-                    else:
-                        filters.setdefault(key, {"$gt": value})
-                    continue
+    return filters
 
-                # todo:<=
-                search_result = pattern_less_or_equal_than.search(temp_prediction)
-                if (search_result != None):
-                    key = temp_path + "." + temp_prediction[0:search_result.span()[0]]
-                    value = int(temp_prediction[search_result.span()[1]:])
-                    if (key in filters):
-                        previous_value = filters.pop(key)
-                        previous_value.setdefault("$lte", value)
-                        filters.setdefault(key, previous_value)
-                    else:
-                        filters.setdefault(key, {"$lte": value})
-                    continue
-
-                search_result = pattern_less_than.search(temp_prediction)
-                # todo:<
-                if (search_result != None):
-                    key = temp_path + "." + temp_prediction[0:search_result.span()[0]]
-                    value = int(temp_prediction[search_result.span()[1]:])
-                    if (key in filters):
-                        previous_value = filters.pop(key)
-                        previous_value.setdefault("$lt", value)
-                        filters.setdefault(key, previous_value)
-                    else:
-                        filters.setdefault(key, {"$lt": value})
-                    continue
-
-                # todo:=
-                search_result = pattern_equal_than.search(temp_prediction)
-                if (search_result != None):
-                    key = temp_path + "." + temp_prediction[0:search_result.span()[0]]
-                    value = temp_prediction[search_result.span()[1]:]
-                    # todo:判断是 int 还是 string
-                    match_result = pattern_String_value.match(value)
-                    if (match_result == None):
-                        value = int(value)
-                    else:
-                        value = value[1:len(value) - 1]
-                    filters.setdefault(key, value)
-                    continue
-        else:
-            # todo:condition 2 predicate 里面 还有predicate
-            sub_filters = parse_to_MongoDB_Query_filter(MongoDB_previous_path, predicate + '/')
-            filters.update(sub_filters)
-
-        return filters.copy()
 
 # todo：只返回 axis::pathname[predicate] 所对应的 pathname
 def generate_MongoDB_path(split_XpathQuery):
@@ -322,13 +395,26 @@ if __name__ == '__main__':
     # temp = generate_MongoDB_filters("library", "child::album[child::artists[child::artist/child::name='Anang Ashanty']/child::artist[country='Indonesia']]/")
     # temp = generate_MongoDB_filters("library.album", "child::artists[child::artist/child::name='Anang Ashanty']/")
 
+    # temp = generate_MongoDB_filters("library","child::album[child::artists/child::artist[child::age>=20 and child::age<=30] and child::artists/child::artist[child::country='Indonesia']]/")
+    # temp = generate_MongoDB_filters("library","child::album[child::artists/child::artist/child::name='Anang Ashanty' and child::artists/child::artist[child::country='Indonesia']]/")
+    # temp = generate_MongoDB_filters("library","child::album[child::artists/child::artist[child::country='Indonesia'] and child::artists/child::artist/child::name='Anang Ashanty']/")
+
     # todo:输入Xpath查询语句 开头加上 doc('library.xml')/
     # todo: 还未通过的测试样例
-    # XpathQuery = "child::library/child::album[child::artists/child::artist[child::name='Anang Ashanty'] and child::artists/child::artist[child::country='Indonesia']]/title"
+
     # todo: 通过的测试样例
-    XpathQuery = "child::library/child::album[child::year>=1990 and child::year<=2000]/child::artists/child::artist[child::country='Indonesia']/child::name"
+    # XpathQuery = "child::library/child::album[child::year>=1990 and child::year<=2000]/child::artists/child::artist[child::country='Indonesia']/child::name"
     # XpathQuery = "child::library/child::album[child::artists[child::artist/child::name='Anang Ashanty']]/child::artists/child::artist[child::country='Indonesia']/child::name"
     # XpathQuery = "child::library/child::album[child::artists[child::artist/child::name='Anang Ashanty']]/child::artists/child::artist[child::country='Indonesia']/child::name[child::age>30]"
+
+    # XpathQuery = "child::library/child::album[child::artists/child::artist[child::name='Anang Ashanty'] and child::artists/child::artist[child::country='Indonesia']]/child::title"
+    # XpathQuery = "child::library/child::album[child::artists/child::artist[child::age>=20 and child::age<=30] and child::artists/child::artist[child::country='Indonesia']]/child::title"
+
+    # XpathQuery = "child::library/child::album[child::artists[child::artist/child::name='Anang Ashanty']/child::artist[child::country='Indonesia']]/child::title"
+    # XpathQuery = "child::library/child::album[child::artists/child::artist[child::name='Anang Ashanty'] and child::artists/child::artist[child::country='Indonesia']]/child::title"
+    # XpathQuery = "child::library/child::album[child::artists/child::artist/child::name='Anang Ashanty' and child::artists/child::artist/child::country='Indonesia']/child::title"
+    # XpathQuery = "child::library/child::album[child::artists[child::artist/child::name='Anang Ashanty'] and child::artists/child::artist[child::country='Indonesia']]/child::title"
+    XpathQuery = "child::library/child::album[child::artists[child::artist/child::name='Anang Ashanty']/child::artist/child::name='Anang Ashanty' and child::artists/child::artist[child::country='Indonesia']]/child::title"
 
     # todo:对 XpathQuery 字符串预处理
     # 去掉空格
@@ -339,8 +425,8 @@ if __name__ == '__main__':
     collection = 'library'
 
     # todo: XpathQuery 转 MongoDBQuery
-    # projection = parse_to_MongoDB_Query_projection(XpathQuery)
     filter = parse_to_MongoDB_Query_filter("", XpathQuery)
+    projection = parse_to_MongoDB_Query_projection(XpathQuery)
 
     # todo MongoDBQuery
     result = ApplyMongoDBQuery(database, collection, filter, projection)
