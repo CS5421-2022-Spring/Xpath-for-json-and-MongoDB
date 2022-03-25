@@ -401,7 +401,10 @@ def mongodb_find_one(previous_path, database, collection):
     my_col = my_db[collection]
     # 打印其中一个text
     # previous_path作用于Xpath中descendant节点前有其他节点的情况
-    find_one_result = my_col.find_one({}, {previous_path : 1})
+    if previous_path:
+        find_one_result = my_col.find_one({}, {previous_path: 1})
+    else:
+        find_one_result = my_col.find_one()
     return find_one_result
 
 
@@ -412,13 +415,21 @@ def find_all_paths(dict_input, path, all_path_set):
             find_all_paths(dict_input[key], path + "." + str(key), all_path_set)
         elif (isinstance(dict_input[key], list)):
             for item in dict_input[key]:
-                if(isinstance(item, dict)):
+                if (isinstance(item, dict)):
                     find_all_paths(item, path + "." + str(key), all_path_set)
                 else:
                     all_path_set.add(path + "." + str(key))
         else:
             all_path_set.add(path + "." + str(key))
 
+
+# 取出Xpath中跟descendant-or-self相对应的节点，举例：
+# 输入："descendant-or-self::song/" 输出: song
+def generate_descendant_or_self_path(split_xpath_query: str):
+    pattern_axis_descendant = re.compile('^descendant-or-self::[a-z]*')
+    match_result = pattern_axis_descendant.match(split_xpath_query).span()
+    generated_descendant_short_path = split_xpath_query[20:match_result[1]]
+    return generated_descendant_short_path
 
 # 取出Xpath中跟descendant相对应的节点，举例：
 # 输入："descendant::song/" 输出: song
@@ -436,7 +447,6 @@ def parse_descendant_full_mongodb_path(generated_descendant_short_path, database
     # all_path为database.collection中所有不同的绝对路径
     all_path = set()
     find_all_paths(one_text_json, "", all_path)
-    print(generated_descendant_short_path)
     pattern_descendant_value = re.compile("(.+(?=" + generated_descendant_short_path + "))")
     matched_list = set()
     # matched_list存储到descendant相对应的节点的绝对路径
@@ -449,12 +459,19 @@ def parse_descendant_full_mongodb_path(generated_descendant_short_path, database
 
 
 # descendant主函数 输入："descendant::title/" 输出：{'songs.song.title', 'title'}
-def bfs_parse_full_path_for_descendant(descendant_input, database, collection, previous_path):
-    short_descendant= generate_descendant_path(descendant_input)
+def bfs_parse_full_path_for_descendant(usage, descendant_input, database, collection, previous_path):
+    if (usage == "descendant"):
+        short_descendant = generate_descendant_path(descendant_input)
+    else:
+        short_descendant = generate_descendant_or_self_path(descendant_input)
     all_descendant_path = parse_descendant_full_mongodb_path(short_descendant, database, collection, previous_path)
+    if(usage == "descendant" and previous_path in all_descendant_path):
+        all_descendant_path.remove(previous_path)
     return all_descendant_path
 
+
 # ---------------descendant-------------------------------------------
+
 
 
 
@@ -500,6 +517,10 @@ if __name__ == '__main__':
     # todo MongoDBQuery
     result = ApplyMongoDBQuery(database, collection, filter, projection)
     
-    #测试descendant
-    print(bfs_parse_full_path_for_descendant("descendant::songs/", database, collection, "title"))
-
+     # 测试descendant-or-self
+    print("预期结果为title", bfs_parse_full_path_for_descendant("descendant-or-self", "descendant-or-self::title/", database, collection, "title"))
+    print("预期结果为songs.song.title", bfs_parse_full_path_for_descendant("descendant-or-self", "descendant-or-self::title/", database, collection, "songs"))
+    # 测试descendant
+    print("预期结果为set()", bfs_parse_full_path_for_descendant("descendant", "descendant::title/", database, collection, "title"))
+    print("预期结果为songs.song.title, title", bfs_parse_full_path_for_descendant("descendant", "descendant::title/", database, collection, ""))
+    print("预期结果为songs.song.title", bfs_parse_full_path_for_descendant("descendant", "descendant::title/", database, collection, "songs"))
