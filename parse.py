@@ -374,7 +374,7 @@ def generate_MongoDB_path(split_XpathQuery):
     return generate_path
 
 
-def ApplyMongoDBQuery(database, collection, filter, projection):
+def ApplyMongoDBQuery(database, collection, filter, projection, function):
     database = 'test'
     collection = 'library'
 
@@ -385,8 +385,30 @@ def ApplyMongoDBQuery(database, collection, filter, projection):
     # todo：选择collection
     mycol = mydb[collection]
     result = mycol.find(filter, projection)
+    # todo: handle functions below...
+    if function == 'count':
+        print("handle count() function")
+    if function == 'text':
+        print("handle text() function")
+    else:
+        print("no function detected or unknown function name")
 
     return result
+
+# returns a tuple (sanitized XPath query, function name)
+def data_preprocess(XpathQuery):
+    # only match count() at the beginning of query
+    count = re.compile('^count\((.*)\)')
+    # only match text() at the end of query
+    text = re.compile('/text\(\)')
+    if count.match(XpathQuery):
+        sanitized_query = count.split(XpathQuery)[1]
+        return (sanitized_query, "count")
+    if text.search(XpathQuery):
+        sanitized_query = text.split(XpathQuery)[0]
+        return (sanitized_query, "text")
+    else: # no function detected, return original XpathQuery and empty function name
+        return (XpathQuery, "")
 
 
 # ---------------descendant-------------------------------------------
@@ -500,7 +522,9 @@ if __name__ == '__main__':
     # XpathQuery = "child::library/child::album[child::artists/child::artist[child::name='Anang Ashanty'] and child::artists/child::artist[child::country='Indonesia']]/child::title"
     # XpathQuery = "child::library/child::album[child::artists/child::artist/child::name='Anang Ashanty' and child::artists/child::artist/child::country='Indonesia']/child::title"
     # XpathQuery = "child::library/child::album[child::artists[child::artist/child::name='Anang Ashanty'] and child::artists/child::artist[child::country='Indonesia']]/child::title"
-    XpathQuery = "child::library/child::album[child::artists[child::artist/child::name='Anang Ashanty']/child::artist/child::name='Anang Ashanty' and child::artists/child::artist[child::country='Indonesia']]/child::title"
+    # XpathQuery = "child::library/child::album[child::artists[child::artist/child::name='Anang Ashanty']/child::artist/child::name='Anang Ashanty' and child::artists/child::artist[child::country='Indonesia']]/child::title"
+    # XpathQuery =  "count(child::library/child::album[child::artists[child::artist/child::name='Anang Ashanty']]/child::artists/child::artist[child::country='Indonesia']/child::name[child::age>30])"
+    XpathQuery = "child::library/child::album[child::artists[child::artist/child::name='Anang Ashanty']]/child::artists/child::artist[child::country='Indonesia']/child::name/text()"
 
     # todo:对 XpathQuery 字符串预处理
     # 去掉空格
@@ -511,11 +535,12 @@ if __name__ == '__main__':
     collection = 'library'
 
     # todo: XpathQuery 转 MongoDBQuery
-    filter = parse_to_MongoDB_Query_filter("", XpathQuery)
-    projection = parse_to_MongoDB_Query_projection(XpathQuery)
+    (sanitized_query, function) = data_preprocess(XpathQuery)
+    filter = parse_to_MongoDB_Query_filter("", sanitized_query)
+    projection = parse_to_MongoDB_Query_projection(sanitized_query)
 
     # todo MongoDBQuery
-    result = ApplyMongoDBQuery(database, collection, filter, projection)
+    result = ApplyMongoDBQuery(database, collection, filter, projection, function)
     
      # 测试descendant-or-self
     print("预期结果为title", bfs_parse_full_path_for_descendant("descendant-or-self", "descendant-or-self::title/", database, collection, "title"))
@@ -524,3 +549,6 @@ if __name__ == '__main__':
     print("预期结果为set()", bfs_parse_full_path_for_descendant("descendant", "descendant::title/", database, collection, "title"))
     print("预期结果为songs.song.title, title", bfs_parse_full_path_for_descendant("descendant", "descendant::title/", database, collection, ""))
     print("预期结果为songs.song.title", bfs_parse_full_path_for_descendant("descendant", "descendant::title/", database, collection, "songs"))
+
+    # test function name parsing
+    print("function:", function)
