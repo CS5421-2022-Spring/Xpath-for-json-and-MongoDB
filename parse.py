@@ -391,6 +391,7 @@ def ApplyMongoDBQuery(database, collection, filter, projection):
 
 # ---------------descendant-------------------------------------------
 
+
 # 获取find_one()的结果，previous_path为descendant节点前解析得到的路径
 def mongodb_find_one(previous_path, database, collection):
     # 连接本地MongoDB,端口27017
@@ -482,29 +483,38 @@ def convert_pure_json_path_to_full_path(pure_json_path):
         full_path = full_path[0:]
     return full_path
 
-#descendant主函数
-def convert_all_descendant_to_child(xpath, database, collection,xpath_set):
-    pattern_axis_descendant = re.compile('descendant::[a-z]*')
+
+# descendant主函数
+def convert_all_descendant_to_child(usage, xpath, database, collection, xpath_set):
+    if usage == "descendant":
+        pattern_axis_descendant = re.compile('descendant::[a-z]*')
+    else:
+        pattern_axis_descendant = re.compile('descendant-or-self::[a-z]*')
     if pattern_axis_descendant.search(xpath):
         match_result = pattern_axis_descendant.search(xpath).span()
         previous_path = ""
-        if match_result[0] != 0:#说明descendant节点前面有路径
-            previous_path_json = parse_to_MongoDB_Query_projection(xpath[:match_result[0]-1])
+        if match_result[0] != 0:  # 说明descendant节点前面有路径
+            previous_path_json = parse_to_MongoDB_Query_projection(xpath[:match_result[0] - 1])
             for key in previous_path_json:
                 previous_path = key
-            all_descendant_path = bfs_parse_full_path_for_descendant("descendant", xpath[match_result[0]: match_result[1]], database, collection, previous_path)
+            all_descendant_path = bfs_parse_full_path_for_descendant(usage,
+                                                                     xpath[match_result[0]: match_result[1]], database,
+                                                                     collection, previous_path)
         else:
-            all_descendant_path = bfs_parse_full_path_for_descendant("descendant",xpath[0: match_result[1]], database, collection, previous_path)
+            all_descendant_path = bfs_parse_full_path_for_descendant(usage, xpath[0: match_result[1]], database,
+                                                                     collection, previous_path)
         if all_descendant_path:  # 表明截止到匹配到的descendant为止，存在从根节点开始的路径供后半部分进行匹配, 所有路径存在all_descendant_path里
             for path in all_descendant_path:
                 local_path = path[len(previous_path):]
                 full_local_path = convert_pure_json_path_to_full_path(local_path)
                 new_xpath = xpath[:match_result[0]] + full_local_path + xpath[match_result[1]:]
-                convert_all_descendant_to_child(new_xpath, database, collection, xpath_set)
+                convert_all_descendant_to_child(usage, new_xpath, database, collection, xpath_set)
         else:  # 表明截止到目前为止已经不存在全路径满足条件了，直接return空list
             return
     else:
         xpath_set.add(xpath)
+
+
 
 # ---------------descendant-------------------------------------------
 
@@ -565,5 +575,5 @@ if __name__ == '__main__':
     #测试descendant主函数 输入为完整xpath, 输出将所有descendant节点置换为child节点
     Xpath_for_descendant_text = "descendant::song/descendant::title"
     xpath_set = set()
-    convert_all_descendant_to_child(Xpath_for_descendant_text,database,collection, xpath_set)
+    convert_all_descendant_to_child("descendant-or-self", Xpath_for_descendant_text, database, collection, xpath_set)
     print(xpath_set)
