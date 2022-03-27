@@ -250,111 +250,227 @@ def generate_MongoDB_filters(MongoDB_previous_path, split_XpathQuery):
 
 
 def parse_predicate(MongoDB_previous_path, predicate):
+    # todo：用于 and 连接的 条件
     filters = {}
+    # todo：用于 or 连接的 条件
+    filters_or = []
+
     # todo: 正则表达式需要的 pattern:
     pattern_greater_or_equal_than = re.compile('\>\=')
     pattern_greater_than = re.compile('\>')
     pattern_less_or_equal_than = re.compile('\<\=')
     pattern_less_than = re.compile('\<')
-    pattern_equal_than = re.compile('\=')
+    pattern_equal = re.compile('\=')
+    pattern_not_equal = re.compile('\!\=')
 
     pattern_String_value = re.compile('^\'[A-Za-z\s]+\'$')
 
-    # todo:如果有 "and" predicate 需要拆分成小的 predicate_atom
-    # 例如 child::year>=1990 and child::year<=2000
-    predicate_split_result = predicate.split(sep=' and ')
+    pattern_and = re.compile('\sand\s')
+    pattern_or = re.compile('\sor\s')
 
-    # todo：解析每个 predicate_atom 的语义
-    for predicate_atom in predicate_split_result:
-        # todo: 解析 axis
-        # todo：还需要考虑其他axis的情况？
+    search_result_and = pattern_and.search(predicate)
+    search_result_or = pattern_or.search(predicate)
 
-        # todo：axis 为 child的情况
-        pattern_axis_child_tagname_slash = re.compile('^child\:\:[a-zA-Z]+\/')  # 匹配诸如 child::artist/
-        pattern_axis_child = re.compile('^child\:\:')  # 匹配诸如 child::
+    if ((search_result_and != None) | (search_result_or == None)):
+        # todo:如果有 "and" predicate 需要拆分成小的 predicate_atom
+        # 例如 child::year>=1990 and child::year<=2000
+        predicate_split_result = predicate.split(sep=' and ')
 
-        temp_prediction = predicate_atom
-        temp_path = MongoDB_previous_path
+        # todo：解析每个 predicate_atom 的语义
+        for predicate_atom in predicate_split_result:
+            # todo: 解析 axis
+            # todo：还需要考虑其他axis的情况？
 
-        # todo: 要考虑 多级路径的情况 例如：child::artist/child::name='Anang Ashanty'
-        match_result = pattern_axis_child_tagname_slash.match(temp_prediction)
-        while (match_result != None):
-            # if (match_result != None):
-            temp_path = temp_path + '.' + temp_prediction[7:match_result.span()[1] - 1]
-            temp_prediction = temp_prediction[match_result.span()[1]:]
+            # todo：axis 为 child的情况
+            pattern_axis_child_tagname_slash = re.compile('^child\:\:[a-zA-Z]+\/')  # 匹配诸如 child::artist/
+            pattern_axis_child = re.compile('^child\:\:')  # 匹配诸如 child::
+
+            temp_prediction = predicate_atom
+            temp_path = MongoDB_previous_path
+
+            # todo: 要考虑 多级路径的情况 例如：child::artist/child::name='Anang Ashanty'
             match_result = pattern_axis_child_tagname_slash.match(temp_prediction)
+            while (match_result != None):
+                temp_path = temp_path + '.' + temp_prediction[7:match_result.span()[1] - 1]
+                temp_prediction = temp_prediction[match_result.span()[1]:]
+                match_result = pattern_axis_child_tagname_slash.match(temp_prediction)
 
-        match_result = pattern_axis_child.match(temp_prediction)
-        temp_prediction = temp_prediction[match_result.span()[1]:]
+            match_result = pattern_axis_child.match(temp_prediction)
+            temp_prediction = temp_prediction[match_result.span()[1]:]
 
-        # todo：解析 内容
-        # todo: >=
-        search_result = pattern_greater_or_equal_than.search(temp_prediction)
-        if (search_result != None):
-            key = temp_path + "." + temp_prediction[0:search_result.span()[0]]
-            value = int(temp_prediction[search_result.span()[1]:])
-            if (key in filters):
-                previous_value = filters.pop(key)
-                previous_value.setdefault("$gte", value)
-                filters.setdefault(key, previous_value)
-            else:
-                filters.setdefault(key, {"$gte": value})
-            continue
+            # todo：解析 内容
+            # todo: >=
+            search_result = pattern_greater_or_equal_than.search(temp_prediction)
+            if (search_result != None):
+                key = temp_path + "." + temp_prediction[0:search_result.span()[0]]
+                value = int(temp_prediction[search_result.span()[1]:])
+                if (key in filters):
+                    previous_value = filters.pop(key)
+                    previous_value.setdefault("$gte", value)
+                    filters.setdefault(key, previous_value)
+                else:
+                    filters.setdefault(key, {"$gte": value})
+                continue
 
-        # todo:>
-        search_result = pattern_greater_than.search(temp_prediction)
-        if (search_result != None):
-            key = temp_path + "." + temp_prediction[0:search_result.span()[0]]
-            value = int(temp_prediction[search_result.span()[1]:])
-            if (key in filters):
-                previous_value = filters.pop(key)
-                previous_value.setdefault("$gt", value)
-                filters.setdefault(key, previous_value)
-            else:
-                filters.setdefault(key, {"$gt": value})
-            continue
+            # todo:>
+            search_result = pattern_greater_than.search(temp_prediction)
+            if (search_result != None):
+                key = temp_path + "." + temp_prediction[0:search_result.span()[0]]
+                value = int(temp_prediction[search_result.span()[1]:])
+                if (key in filters):
+                    previous_value = filters.pop(key)
+                    previous_value.setdefault("$gt", value)
+                    filters.setdefault(key, previous_value)
+                else:
+                    filters.setdefault(key, {"$gt": value})
+                continue
 
-        # todo:<=
-        search_result = pattern_less_or_equal_than.search(temp_prediction)
-        if (search_result != None):
-            key = temp_path + "." + temp_prediction[0:search_result.span()[0]]
-            value = int(temp_prediction[search_result.span()[1]:])
-            if (key in filters):
-                previous_value = filters.pop(key)
-                previous_value.setdefault("$lte", value)
-                filters.setdefault(key, previous_value)
-            else:
-                filters.setdefault(key, {"$lte": value})
-            continue
+            # todo:<=
+            search_result = pattern_less_or_equal_than.search(temp_prediction)
+            if (search_result != None):
+                key = temp_path + "." + temp_prediction[0:search_result.span()[0]]
+                value = int(temp_prediction[search_result.span()[1]:])
+                if (key in filters):
+                    previous_value = filters.pop(key)
+                    previous_value.setdefault("$lte", value)
+                    filters.setdefault(key, previous_value)
+                else:
+                    filters.setdefault(key, {"$lte": value})
+                continue
 
-        search_result = pattern_less_than.search(temp_prediction)
-        # todo:<
-        if (search_result != None):
-            key = temp_path + "." + temp_prediction[0:search_result.span()[0]]
-            value = int(temp_prediction[search_result.span()[1]:])
-            if (key in filters):
-                previous_value = filters.pop(key)
-                previous_value.setdefault("$lt", value)
-                filters.setdefault(key, previous_value)
-            else:
-                filters.setdefault(key, {"$lt": value})
-            continue
+            search_result = pattern_less_than.search(temp_prediction)
+            # todo:<
+            if (search_result != None):
+                key = temp_path + "." + temp_prediction[0:search_result.span()[0]]
+                value = int(temp_prediction[search_result.span()[1]:])
+                if (key in filters):
+                    previous_value = filters.pop(key)
+                    previous_value.setdefault("$lt", value)
+                    filters.setdefault(key, previous_value)
+                else:
+                    filters.setdefault(key, {"$lt": value})
+                continue
+            # todo: !=
+            search_result = pattern_not_equal.search(temp_prediction)
+            if (search_result != None):
+                key = temp_path + "." + temp_prediction[0:search_result.span()[0]]
+                value = temp_prediction[search_result.span()[1]:]
+                # todo:判断是 int 还是 string
+                match_result = pattern_String_value.match(value)
+                if (match_result == None):
+                    value = int(value)
+                else:
+                    value = value[1:len(value) - 1]
+                if (key in filters):
+                    previous_value = filters.pop(key)
+                    previous_value.setdefault("$ne", value)
+                    filters.setdefault(key, previous_value)
+                else:
+                    filters.setdefault(key, {"$ne": value})
+                continue
+            # todo:=
+            search_result = pattern_equal.search(temp_prediction)
+            if (search_result != None):
+                key = temp_path + "." + temp_prediction[0:search_result.span()[0]]
+                value = temp_prediction[search_result.span()[1]:]
+                # todo:判断是 int 还是 string
+                match_result = pattern_String_value.match(value)
+                if (match_result == None):
+                    value = int(value)
+                else:
+                    value = value[1:len(value) - 1]
+                filters.setdefault(key, value)
+                continue
 
-        # todo:=
-        search_result = pattern_equal_than.search(temp_prediction)
-        if (search_result != None):
-            key = temp_path + "." + temp_prediction[0:search_result.span()[0]]
-            value = temp_prediction[search_result.span()[1]:]
-            # todo:判断是 int 还是 string
-            match_result = pattern_String_value.match(value)
-            if (match_result == None):
-                value = int(value)
-            else:
-                value = value[1:len(value) - 1]
-            filters.setdefault(key, value)
-            continue
+        return filters
 
-    return filters
+    if (search_result_or != None):
+        # todo:如果有 "or" predicate 需要拆分成小的 predicate_atom
+        # 例如 child::year>=1990 or child::year<=2000
+        predicate_split_result = predicate.split(sep=' or ')
+
+        # todo：解析每个 predicate_atom 的语义
+        for predicate_atom in predicate_split_result:
+            # todo: 解析 axis
+
+            # todo：axis 为 child的情况
+            pattern_axis_child_tagname_slash = re.compile('^child\:\:[a-zA-Z]+\/')  # 匹配诸如 child::artist/
+            pattern_axis_child = re.compile('^child\:\:')  # 匹配诸如 child::
+
+            temp_prediction = predicate_atom
+            temp_path = MongoDB_previous_path
+
+            # todo: 要考虑 多级路径的情况 例如：child::artist/child::name='Anang Ashanty'
+            match_result = pattern_axis_child_tagname_slash.match(temp_prediction)
+            while (match_result != None):
+                temp_path = temp_path + '.' + temp_prediction[7:match_result.span()[1] - 1]
+                temp_prediction = temp_prediction[match_result.span()[1]:]
+                match_result = pattern_axis_child_tagname_slash.match(temp_prediction)
+
+            match_result = pattern_axis_child.match(temp_prediction)
+            temp_prediction = temp_prediction[match_result.span()[1]:]
+
+            # todo：解析 内容
+            # todo: >=
+            search_result = pattern_greater_or_equal_than.search(temp_prediction)
+            if (search_result != None):
+                key = temp_path + "." + temp_prediction[0:search_result.span()[0]]
+                value = int(temp_prediction[search_result.span()[1]:])
+                filters_or.append({key: {"$gte": value}})
+                continue
+
+            # todo:>
+            search_result = pattern_greater_than.search(temp_prediction)
+            if (search_result != None):
+                key = temp_path + "." + temp_prediction[0:search_result.span()[0]]
+                value = int(temp_prediction[search_result.span()[1]:])
+                filters_or.append({key: {"$gt": value}})
+                continue
+
+            # todo:<=
+            search_result = pattern_less_or_equal_than.search(temp_prediction)
+            if (search_result != None):
+                key = temp_path + "." + temp_prediction[0:search_result.span()[0]]
+                value = int(temp_prediction[search_result.span()[1]:])
+                filters_or.append({key: {"$lte": value}})
+                continue
+
+            search_result = pattern_less_than.search(temp_prediction)
+            # todo:<
+            if (search_result != None):
+                key = temp_path + "." + temp_prediction[0:search_result.span()[0]]
+                value = int(temp_prediction[search_result.span()[1]:])
+                filters_or.append({key: {"$lt": value}})
+                continue
+            # todo: !=
+            search_result = pattern_not_equal.search(temp_prediction)
+            if (search_result != None):
+                key = temp_path + "." + temp_prediction[0:search_result.span()[0]]
+                value = temp_prediction[search_result.span()[1]:]
+                # todo:判断是 int 还是 string
+                match_result = pattern_String_value.match(value)
+                if (match_result == None):
+                    value = int(value)
+                else:
+                    value = value[1:len(value) - 1]
+                filters_or.append({key: {"$ne": value}})
+                continue
+            # todo:=
+            search_result = pattern_equal.search(temp_prediction)
+            if (search_result != None):
+                key = temp_path + "." + temp_prediction[0:search_result.span()[0]]
+                value = temp_prediction[search_result.span()[1]:]
+                # todo:判断是 int 还是 string
+                match_result = pattern_String_value.match(value)
+                if (match_result == None):
+                    value = int(value)
+                else:
+                    value = value[1:len(value) - 1]
+                filters_or.append({key: value})
+                continue
+
+        filters = {"$or": filters_or}
+        return filters
 
 
 # todo：只返回 axis::pathname[predicate] 所对应的 pathname
@@ -395,6 +511,7 @@ def ApplyMongoDBQuery(database, collection, filter, projection, function):
 
     return result
 
+
 # returns a tuple (sanitized XPath query, function name)
 def data_preprocess(XpathQuery):
     # only match count() at the beginning of query
@@ -407,7 +524,7 @@ def data_preprocess(XpathQuery):
     if text.search(XpathQuery):
         sanitized_query = text.split(XpathQuery)[0]
         return (sanitized_query, "text")
-    else: # no function detected, return original XpathQuery and empty function name
+    else:  # no function detected, return original XpathQuery and empty function name
         return (XpathQuery, "")
 
 
@@ -537,11 +654,7 @@ def convert_all_descendant_to_child(usage, xpath, database, collection, xpath_se
         xpath_set.add(xpath)
 
 
-
 # ---------------descendant-------------------------------------------
-
-
-
 
 
 if __name__ == '__main__':
@@ -554,10 +667,20 @@ if __name__ == '__main__':
     # temp = generate_MongoDB_filters("library","child::album[child::artists/child::artist/child::name='Anang Ashanty' and child::artists/child::artist[child::country='Indonesia']]/")
     # temp = generate_MongoDB_filters("library","child::album[child::artists/child::artist[child::country='Indonesia'] and child::artists/child::artist/child::name='Anang Ashanty']/")
 
+    # test parse_predicate function
+    # temp = parse_predicate('library','child::year>=1990 or child::year<=2000')
+    # temp = parse_predicate('library','child::year>=1990 and child::year<=2000')
+
+
     # todo:输入Xpath查询语句 开头加上 doc('library.xml')/
     # todo: 还未通过的测试样例
 
     # todo: 通过的测试样例
+    # 关于 or的测试样例
+    # XpathQuery = "child::library/child::album[child::year>=1990 or child::year<=2000]/child::artists/child::artist[child::country='Indonesia']/child::name"
+    XpathQuery = "child::library/child::album[child::artists/child::artist[child::age>=20 or child::age<=30] and child::artists/child::artist[child::country='Indonesia']]/child::title"
+
+
     # XpathQuery = "child::library/child::album[child::year>=1990 and child::year<=2000]/child::artists/child::artist[child::country='Indonesia']/child::name"
     # XpathQuery = "child::library/child::album[child::artists[child::artist/child::name='Anang Ashanty']]/child::artists/child::artist[child::country='Indonesia']/child::name"
     # XpathQuery = "child::library/child::album[child::artists[child::artist/child::name='Anang Ashanty']]/child::artists/child::artist[child::country='Indonesia']/child::name[child::age>30]"
@@ -571,7 +694,7 @@ if __name__ == '__main__':
     # XpathQuery = "child::library/child::album[child::artists[child::artist/child::name='Anang Ashanty'] and child::artists/child::artist[child::country='Indonesia']]/child::title"
     # XpathQuery = "child::library/child::album[child::artists[child::artist/child::name='Anang Ashanty']/child::artist/child::name='Anang Ashanty' and child::artists/child::artist[child::country='Indonesia']]/child::title"
     # XpathQuery =  "count(child::library/child::album[child::artists[child::artist/child::name='Anang Ashanty']]/child::artists/child::artist[child::country='Indonesia']/child::name[child::age>30])"
-    XpathQuery = "child::library/child::album[child::artists[child::artist/child::name='Anang Ashanty']]/child::artists/child::artist[child::country='Indonesia']/child::name/text()"
+    # XpathQuery = "child::library/child::album[child::artists[child::artist/child::name='Anang Ashanty']]/child::artists/child::artist[child::country='Indonesia']/child::name/text()"
 
     # todo:对 XpathQuery 字符串预处理
     # 去掉空格
