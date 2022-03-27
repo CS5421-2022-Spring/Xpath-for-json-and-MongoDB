@@ -2,7 +2,6 @@ import pymongo
 import re
 from parse_process.parse import parse_to_MongoDB_Query_projection
 
-
 # 获取find_one()的结果，previous_path为descendant节点前解析得到的路径
 def mongodb_find_one(previous_path, database, collection):
     # 连接本地MongoDB,端口27017

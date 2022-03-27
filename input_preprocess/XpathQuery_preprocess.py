@@ -38,6 +38,3 @@ def data_preprocess(XpathQuery, isFullPath, database, collection):
         else:  # no function detected, return original XpathQuery and empty function name
             result.append((xpath, ""))
     return result
-
-
-print(data_preprocess("count(child::library/descendant::album[child::artists[child::artist/child::name='Anang Ashanty']]/child::artists/child::artist[child::country='Indonesia']/child::name[child::age>30])", True, "", ""))
