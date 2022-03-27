@@ -44,6 +44,8 @@ def handleText(projection,result):
     def text(last_key, dictionary):
         value = list(dictionary.values())[0]
         key = list(dictionary.keys())[0]
+        # print(value)
+        # print(key)
         if key == last_key:
             if isinstance(value, list) and isinstance(value[0], str):
                 return value
@@ -60,21 +62,31 @@ def handleText(projection,result):
             for dic in value:
                 lst.append(text(last_key,dic))
             return lst
-        return
 
     text_result = []
-
+    # print(type(text_result))
     for doc in result:
         #temp = doc[keys.split('.')[0]]
         temp = doc[first_key]
         temp_result = text(last_key,temp)
-        text_result = text_result + temp_result
+        text_result.append(temp_result)
 
-    return text_result
+    def flatten(list_of_lists):
+        if len(list_of_lists) == 0:
+            return list_of_lists
+        if isinstance(list_of_lists[0], list):
+            return flatten(list_of_lists[0]) + flatten(list_of_lists[1:])
+        return list_of_lists[:1] + flatten(list_of_lists[1:])
+
+    return flatten(text_result)
 
 
 if __name__=="__main__":
-    import pymongo
+    import sys
+    import os
+    print(os.getcwd())
+
+    sys.path.append('/Users/lingxing/Downloads/1_cs5421/Xpath-for-json-and-MongoDB/parse_process')
     from parse import *
     from bson.json_util import dumps
 
@@ -100,7 +112,8 @@ if __name__=="__main__":
     # XpathQuery = "count(child::library/child::album[child::artists/child::artist/child::name='Anang Ashanty']/child::songs/child::song/child::title)"
     # XpathQuery = "count(child::library/child::album[child::artists/child::artist/child::name='Anang Ashanty']/child::genres/child::genre)"
     # XpathQuery = "child::library/child::album[child::artists/child::artist/child::name='Anang Ashanty']/child::songs/child::song/child::title/text()"
-    XpathQuery = "child::library/child::album[child::artists/child::artist/child::name='Anang Ashanty']/child::genres/child::genre/text()"
+    # XpathQuery = "child::library/child::album[child::artists/child::artist/child::name='Anang Ashanty']/child::genres/child::genre/text()"
+    XpathQuery = "child::library/child::album[child::artists[child::artist/child::name='Anang Ashanty']]/child::artists/child::artist[child::country='Indonesia']/child::name/child::text()"
 
     (sanitized_query, function) = data_preprocess(XpathQuery)
     filter = parse_to_MongoDB_Query_filter("", sanitized_query)
@@ -110,5 +123,5 @@ if __name__=="__main__":
     # print(handleCount(projection,result))
     # print(projection)
     # print(filter)
-    # print(result)
+    print(result)
     print(handleText(projection,result))

@@ -521,7 +521,7 @@ def data_preprocess(XpathQuery):
     # only match text() at the end of query
     text = re.compile('/(child::)?text\(\)')
     # match * at the end of query
-    any_element = re.complie('\*$')
+    any_element = re.compile('\*$')
     if count.match(XpathQuery):
         sanitized_query = count.split(XpathQuery)[1]
         return (sanitized_query, "count")
