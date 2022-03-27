@@ -6,6 +6,11 @@ def handleCount(projection,result):
 
     # count the number of nodes in the final result
     def count(last_key, dictionary):
+        if isinstance(dictionary,list):
+            sum = 0
+            for dic in dictionary:
+                sum  = sum + count(last_key,dic)
+            return sum
         # Each dictionary only has one key and one value except the first dictionary.
         value = list(dictionary.values())[0]
         key = list(dictionary.keys())[0]
@@ -42,6 +47,11 @@ def handleText(projection,result):
 
     # Directly print the text node if the query result is text node. If not, return NONE.
     def text(last_key, dictionary):
+        if isinstance(dictionary,list):
+            lst = []
+            for dic in dictionary:
+                lst.append(text(last_key, dic))
+            return lst
         value = list(dictionary.values())[0]
         key = list(dictionary.keys())[0]
         # print(value)
@@ -113,15 +123,22 @@ if __name__=="__main__":
     # XpathQuery = "count(child::library/child::album[child::artists/child::artist/child::name='Anang Ashanty']/child::genres/child::genre)"
     # XpathQuery = "child::library/child::album[child::artists/child::artist/child::name='Anang Ashanty']/child::songs/child::song/child::title/text()"
     # XpathQuery = "child::library/child::album[child::artists/child::artist/child::name='Anang Ashanty']/child::genres/child::genre/text()"
-    XpathQuery = "child::library/child::album[child::artists[child::artist/child::name='Anang Ashanty']]/child::artists/child::artist[child::country='Indonesia']/child::name/child::text()"
+    # XpathQuery = "child::library/child::album[child::year>=1990 or child::year<=2000]/child::artists/child::artist[child::country='Indonesia']/child::name/child::text()"
+    # XpathQuery = "count(child::library/child::album[child::year>=1990 or child::year<=2000]/child::artists/child::artist[child::country='Indonesia']/child::name)"
+    # XpathQuery = "child::library/child::album[child::artists/child::artist[child::age>=20 or child::age<=30] and child::artists/child::artist[child::country='Indonesia']]/child::title/child::text()"
+    # XpathQuery = "child::library/child::album[child::year>=1990 and child::year<=2000]/child::artists/child::artist[child::country='Indonesia']/child::name/child::text()"
+    # XpathQuery = "count(child::library/child::album[child::year>=1990 and child::year<=2000]/child::artists/child::artist[child::country='Indonesia']/child::name)"
+    # XpathQuery = "count(child::library/child::album[child::artists[child::artist/child::name='Anang Ashanty']]/child::artists/child::artist[child::country='Indonesia']/child::name)"
+    XpathQuery = "child::library/child::album[child::artists[child::artist/child::name='Anang Ashanty']/child::artist/child::name='Anang Ashanty' and child::artists/child::artist[child::country='Indonesia']]/child::title/text()"
 
     (sanitized_query, function) = data_preprocess(XpathQuery)
     filter = parse_to_MongoDB_Query_filter("", sanitized_query)
     projection = parse_to_MongoDB_Query_projection(sanitized_query)
     cursor = ApplyMongoDBQuery(database, collection, filter, projection, function)
     result = eval(dumps(list(cursor)))
-    # print(handleCount(projection,result))
-    # print(projection)
-    # print(filter)
+
+    print(projection)
+    print(filter)
     print(result)
     print(handleText(projection,result))
+    #print(handleCount(projection,result))
