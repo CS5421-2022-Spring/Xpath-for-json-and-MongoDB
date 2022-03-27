@@ -1,6 +1,7 @@
 '''
 Transfer output into XML string
 '''
+from handle_functions import handleCount, handleText
 from bson.json_util import dumps
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
@@ -39,12 +40,14 @@ def parseNodes(jsonResult,projection):
   return resultStack
 
 def finalOutput(result,projection,function):
+  result = eval(dumps(list(cursor)))
   # return xpath tree
   resultTree = ET.Element("result")
   if function == 'count':
-    resultTree.text = count(result)
-  if function == 'text':
-    resultTree.text = text(result)
+    resultTree.text = '\n'+str(handleCount(projection,result))+'\n'
+  elif function == 'text':
+    text = handleText(projection,result)
+    resultTree.text = '\n'+'\n'.join(text)+'\n'
   else:
     resultList = parseNodes(result,projection)
     resultTag = list(projection.keys())[0].split('.')[-1]
@@ -69,15 +72,18 @@ if __name__=="__main__":
 
   # Xpath query for test
   # XpathQuery = "child::library/child::album/child::artists/child::artist[child::name='Anang Ashanty']/child::name"
-  # XpathQuery = "child::library/child::album[child::artists/child::artist/child::name='Anang Ashanty']/child::songs/child::song/child::title"
-  XpathQuery = "child::library/child::album[child::artists/child::artist/child::name='Anang Ashanty']/child::genres/child::genre"
-  
+  # XpathQuery = "count(child::library/child::album[child::artists/child::artist/child::name='Anang Ashanty']/child::songs/child::song/child::title)"
+  # XpathQuery = "child::library/child::album[child::artists/child::artist/child::name='Anang Ashanty']/child::genres/child::genre/text()"
+  # XpathQuery = "child::library/child::album[child::artists/child::artist/child::name='Anang Ashanty']/child::genres/child::genre/text()"
+  # XpathQuery = "child::library/child::album[child::year>=1990 or child::year<=2000]/child::artists/child::artist[child::country='Indonesia']/child::name" # Xpath:3 objects, MonggoDB: 4 objects Anggun
+  XpathQuery = "child::library/child::album[child::artists[child::artist/child::name='Anang Ashanty']]/child::artists/child::artist[child::country='Indonesia']/child::name/child::text()"
+
   # Our result
   (sanitized_query, function) = data_preprocess(XpathQuery)
   filter = parse_to_MongoDB_Query_filter("", sanitized_query)
   projection = parse_to_MongoDB_Query_projection(sanitized_query)
   cursor = ApplyMongoDBQuery(database, collection, filter, projection, function)
-  result = eval(dumps(list(cursor)))
+  # result = eval(dumps(list(cursor)))
   xml_result = finalOutput(result,projection,function)
   # xml_result = dicttoxml.dicttoxml(result)  
   print("Final result:",xml_result)
