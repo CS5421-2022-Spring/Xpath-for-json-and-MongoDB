@@ -506,6 +506,8 @@ def ApplyMongoDBQuery(database, collection, filter, projection, function):
         print("handle count() function")
     if function == 'text':
         print("handle text() function")
+    if function == 'any_element':
+        print("handle any_element")
     else:
         print("no function detected or unknown function name")
 
@@ -517,13 +519,18 @@ def data_preprocess(XpathQuery):
     # only match count() at the beginning of query
     count = re.compile('^count\((.*)\)')
     # only match text() at the end of query
-    text = re.compile('/text\(\)')
+    text = re.compile('/(child::)?text\(\)')
+    # match * at the end of query
+    any_element = re.complie('\*$')
     if count.match(XpathQuery):
         sanitized_query = count.split(XpathQuery)[1]
         return (sanitized_query, "count")
     if text.search(XpathQuery):
         sanitized_query = text.split(XpathQuery)[0]
         return (sanitized_query, "text")
+    if any_element.search(XpathQuery):
+        sanitized_query = any_element.split(XpathQuery)[0][:-1]
+        return (sanitized_query, "any_element")
     else:  # no function detected, return original XpathQuery and empty function name
         return (XpathQuery, "")
 
@@ -727,8 +734,8 @@ if __name__ == '__main__':
     # todo: 通过的测试样例
     # 关于 or的测试样例
     # XpathQuery = "child::library/child::album[child::year>=1990 or child::year<=2000]/child::artists/child::artist[child::country='Indonesia']/child::name"
-    XpathQuery = "child::library/child::album[child::artists/child::artist[child::age>=20 or child::age<=30] and child::artists/child::artist[child::country='Indonesia']]/child::title"
-
+    # XpathQuery = "child::library/child::album[child::artists/child::artist[child::age>=20 or child::age<=30] and child::artists/child::artist[child::country='Indonesia']]/child::title"
+    # XpathQuery = "child::library/child::album[child::year>=1990 or child::year<=2000]/child::artists/child::artist[child::country='Indonesia']/child::name/*"
 
     # XpathQuery = "child::library/child::album[child::year>=1990 and child::year<=2000]/child::artists/child::artist[child::country='Indonesia']/child::name"
     # XpathQuery = "child::library/child::album[child::artists[child::artist/child::name='Anang Ashanty']]/child::artists/child::artist[child::country='Indonesia']/child::name"
@@ -743,7 +750,7 @@ if __name__ == '__main__':
     # XpathQuery = "child::library/child::album[child::artists[child::artist/child::name='Anang Ashanty'] and child::artists/child::artist[child::country='Indonesia']]/child::title"
     # XpathQuery = "child::library/child::album[child::artists[child::artist/child::name='Anang Ashanty']/child::artist/child::name='Anang Ashanty' and child::artists/child::artist[child::country='Indonesia']]/child::title"
     # XpathQuery =  "count(child::library/child::album[child::artists[child::artist/child::name='Anang Ashanty']]/child::artists/child::artist[child::country='Indonesia']/child::name[child::age>30])"
-    # XpathQuery = "child::library/child::album[child::artists[child::artist/child::name='Anang Ashanty']]/child::artists/child::artist[child::country='Indonesia']/child::name/text()"
+    # XpathQuery = "child::library/child::album[child::artists[child::artist/child::name='Anang Ashanty']]/child::artists/child::artist[child::country='Indonesia']/child::name/child::text()"
 
     # todo:对 XpathQuery 字符串预处理
     # 去掉空格
