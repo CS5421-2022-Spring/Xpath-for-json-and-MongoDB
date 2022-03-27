@@ -96,6 +96,9 @@ def convert_pure_json_path_to_full_path(pure_json_path):
 
 
 # descendant主函数
+# usage: "descendant" or "descendant-or-self"
+# xpath: full_xpath_query with descendant::
+# xpath_set: returned result
 def convert_all_descendant_to_child(usage, xpath, database, collection, xpath_set):
     if usage == "descendant":
         pattern_axis_descendant = re.compile('descendant::[a-z]*')
