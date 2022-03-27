@@ -1,6 +1,3 @@
-# import pymongo
-# from parse import *
-# from bson.json_util import dumps
 
 def handleCount(projection,result):
     keys = list(projection.keys())[0]
@@ -77,6 +74,9 @@ def handleText(projection,result):
 
 
 if __name__=="__main__":
+    import pymongo
+    from parse import *
+    from bson.json_util import dumps
 
     database = 'test'
     collection = 'library'
