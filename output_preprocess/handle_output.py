@@ -6,14 +6,6 @@ from bson.json_util import dumps
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
 
-def count(jsonResult):
-  # import from outside
-  pass
-
-def text(jsonResult):
-  # import from outside
-  pass
-
 def _parseObj(obj, key):
   # alwasy return a list of value within this key
   result = []
@@ -84,6 +76,6 @@ if __name__=="__main__":
   projection = parse_to_MongoDB_Query_projection(sanitized_query)
   cursor = ApplyMongoDBQuery(database, collection, filter, projection, function)
   # result = eval(dumps(list(cursor)))
-  xml_result = finalOutput(result,projection,function)
+  xml_result = finalOutput(cursor,projection,function)
   # xml_result = dicttoxml.dicttoxml(result)  
   print("Final result:",xml_result)
