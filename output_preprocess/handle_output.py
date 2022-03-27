@@ -1,7 +1,7 @@
 '''
 Transfer output into XML string
 '''
-from handle_functions import handleCount, handleText
+from output_preprocess.handle_functions import handleCount, handleText
 from bson.json_util import dumps
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
@@ -39,7 +39,7 @@ def parseNodes(jsonResult,projection):
     resultStack_ = []
   return resultStack
 
-def finalOutput(result,projection,function):
+def finalOutput(cursor,projection,function):
   result = eval(dumps(list(cursor)))
   # return xpath tree
   resultTree = ET.Element("result")
@@ -64,7 +64,7 @@ if __name__=="__main__":
   import sys
   import os
   sys.path.append(os.path.join(os.getcwd(),'Xpath-for-json-and-MongoDB'))
-  from parse import *
+  from parse_process.parse import *
 
   # MongoDB database.collection
   database = 'test'
