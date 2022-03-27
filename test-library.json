@@ -1,177 +1,185 @@
-{
-  "library": {
-    "album": [
-      {
-        "title": "Bua Hati",
-        "artists": {
-          "artist": [
-            {
+[
+  {"library":{
+    "album":{
+          "title": "Bua Hati",
+          "artists": {
+            "artist": [
+              {
+                "name": "Anang Ashanty",
+                "country": "Indonesia"
+              },
+              {
+                "name": "Kris Dayanti",
+                "country": "Indonesia"
+              }
+            ]
+          },
+          "songs": {
+            "song": [
+              {
+                "title": "Timang-Timang",
+                "duration": "5:13"
+              },
+              {
+                "title": "Miliki Diriku",
+                "duration": "5:35"
+              },
+              {
+                "title": "Bua Hati",
+                "duration": "5:07"
+              }
+            ]
+          },
+          "genres": {
+            "genre": [
+              "Pop",
+              "World"
+            ]
+          },
+          "year": 1998
+      }
+  }},
+  {"library":{
+    "album":{
+          "title": "Separuh Jiwaku Pergi",
+          "artists": {
+            "artist": {
               "name": "Anang Ashanty",
               "country": "Indonesia"
-            },
-            {
-              "name": "Kris Dayanti",
+            }
+          },
+          "songs": {
+            "song": [
+              {
+                "title": "Separuh Jiwaku Pergi",
+                "duration": "5:00"
+              },
+              {
+                "title": "Belajarlah Untuk Cinta",
+                "duration": "5:23"
+              },
+              {
+                "title": "Hujanpun Menangis",
+                "duration": "4:17"
+              }
+            ]
+          },
+          "genres": {
+            "genre": [
+              "Pop",
+              "World"
+            ]
+          },
+          "year": 1998
+      }
+  }},
+  {"library":{
+    "album":{
+          "title": "Yang Hilang",
+          "artists": {
+            "artist": {
+              "name": "Anggun",
               "country": "Indonesia"
             }
-          ]
-        },
-        "songs": {
-          "song": [
-            {
-              "title": "Timang-Timang",
-              "duration": "5:13"
-            },
-            {
-              "title": "Miliki Diriku",
-              "duration": "5:35"
-            },
-            {
-              "title": "Bua Hati",
-              "duration": "5:07"
+          },
+          "songs": {
+            "song": {
+              "title": "Yang Hilang",
+              "duration": "3:23"
             }
-          ]
-        },
-        "genres": {
-          "genre": [
-            "Pop",
-            "World"
-          ]
-        },
-        "year": 1998
-      },
-      {
-        "title": "Separuh Jiwaku Pergi",
-        "artists": {
-          "artist": {
-            "name": "Anang Ashanty",
-            "country": "Indonesia"
-          }
-        },
-        "songs": {
-          "song": [
-            {
-              "title": "Separuh Jiwaku Pergi",
-              "duration": "5:00"
-            },
-            {
-              "title": "Belajarlah Untuk Cinta",
-              "duration": "5:23"
-            },
-            {
-              "title": "Hujanpun Menangis",
-              "duration": "4:17"
+          },
+          "genres": { "genre": "rock" },
+          "year": 1994
+        }   
+  }},
+  {"library":{
+    "album":{
+          "title": "Fantastic",
+          "artists": {
+            "artist": {
+              "name": "Wham!",
+              "country": "United Kingdom"
             }
-          ]
-        },
-        "genres": {
-          "genre": [
-            "Pop",
-            "World"
-          ]
-        },
-        "year": 1998
-      },
-      {
-        "title": "Yang Hilang",
-        "artists": {
-          "artist": {
-            "name": "Anggun",
-            "country": "Indonesia"
-          }
-        },
-        "songs": {
-          "song": {
-            "title": "Yang Hilang",
-            "duration": "3:23"
-          }
-        },
-        "genres": { "genre": "rock" },
-        "year": 1994
-      },
-      {
-        "title": "Fantastic",
-        "artists": {
-          "artist": {
-            "name": "Wham!",
-            "country": "United Kingdom"
-          }
-        },
-        "songs": {
-          "song": [
-            {
-              "title": "Bad Boys",
-              "duration": "3:18"
-            },
-            {
-              "title": "A Ray Of Sunshine",
-              "duration": "4:43"
+          },
+          "songs": {
+            "song": [
+              {
+                "title": "Bad Boys",
+                "duration": "3:18"
+              },
+              {
+                "title": "A Ray Of Sunshine",
+                "duration": "4:43"
+              }
+            ]
+          },
+          "genres": { "genre": "pop" },
+          "year": 1983
+        }
+  }},
+  {"library":{
+    "album":{
+          "title": "Sanggar Mustika",
+          "artists": {
+            "artist": {
+              "name": "Siti Nurhaliza",
+              "country": "Malaysia"
             }
-          ]
-        },
-        "genres": { "genre": "pop" },
-        "year": 1983
-      },
-      {
-        "title": "Sanggar Mustika",
-        "artists": {
-          "artist": {
-            "name": "Siti Nurhaliza",
-            "country": "Malaysia"
-          }
-        },
-        "songs": {
-          "song": [
-            {
-              "title": "Nirmala",
-              "duration": "5:36"
-            },
-            {
-              "title": "Joget Senyum Memikat",
-              "duration": "4:28"
+          },
+          "songs": {
+            "song": [
+              {
+                "title": "Nirmala",
+                "duration": "5:36"
+              },
+              {
+                "title": "Joget Senyum Memikat",
+                "duration": "4:28"
+              }
+            ]
+          },
+          "genres": { "genre": "pop" },
+          "year": 1983
+        }
+  }},
+  {"library":{
+    "album":{
+          "title": "No War",
+          "artists": {
+            "artist": {
+              "name": "Job Bunjob Pholin",
+              "country": "Thailand"
             }
-          ]
-        },
-        "genres": { "genre": "pop" },
-        "year": 1983
-      },
-      {
-        "title": "No War",
-        "artists": {
-          "artist": {
-            "name": "Job Bunjob Pholin",
-            "country": "Thailand"
-          }
-        },
-        "songs": {
-          "song": [
-            {
-              "title": "Do Ter Tam",
-              "duration": "4:20"
-            },
-            {
-              "title": "Payam Island",
-              "duration": "4:21"
-            },
-            {
-              "title": "เพียงสักครั้ง",
-              "duration": "3:24"
-            },
-            {
-              "title": "No War",
-              "duration": "5:00"
-            }
-          ]
-        },
-        "genres": {
-          "genre": [
-            "Reggae,",
-            " Folk",
-            "World",
-            "Country"
-          ]
-        },
-        "year": 1998
-      }
-    ]  
-  }
-}
+          },
+          "songs": {
+            "song": [
+              {
+                "title": "Do Ter Tam",
+                "duration": "4:20"
+              },
+              {
+                "title": "Payam Island",
+                "duration": "4:21"
+              },
+              {
+                "title": "เพียงสักครั้ง",
+                "duration": "3:24"
+              },
+              {
+                "title": "No War",
+                "duration": "5:00"
+              }
+            ]
+          },
+          "genres": {
+            "genre": [
+              "Reggae,",
+              " Folk",
+              "World",
+              "Country"
+            ]
+          },
+          "year": 1998
+        }
+  }}
+]
