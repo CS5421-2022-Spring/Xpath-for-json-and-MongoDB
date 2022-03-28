@@ -1,7 +1,7 @@
 '''
 Transfer output into XML string
 '''
-from output_preprocess.handle_functions import handleCount, handleText
+from handle_functions import handleCount, handleText
 from bson.json_util import dumps
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
@@ -16,11 +16,10 @@ def _parseObj(obj, key):
     result.append(nextLayer)
   return result
   
-
 # parse the structure of result tree
 # return a list of result value
 # result only has one type of tag, not considering union
-def parseNodes(jsonResult,projection):
+def _parseNodes(jsonResult,projection):
   keys = list(projection.keys())[0]
   resultStack = jsonResult # a stack of all the un-parsed result
   resultStack_ = [] # next layer of stack of the un-parsed result
@@ -31,51 +30,50 @@ def parseNodes(jsonResult,projection):
     resultStack_ = []
   return resultStack
 
-def finalOutput(cursor,projection,function):
-  result = eval(dumps(list(cursor)))
-  # return xpath tree
-  resultTree = ET.Element("result")
-  if function == 'count':
-    resultTree.text = '\n'+str(handleCount(projection,result))+'\n'
-  elif function == 'text':
-    text = handleText(projection,result)
-    resultTree.text = '\n'+'\n'.join(text)+'\n'
-  else:
-    resultList = parseNodes(result,projection)
-    resultTag = list(projection.keys())[0].split('.')[-1]
-    for res in resultList:
-      resultElement = ET.SubElement(resultTree,resultTag)
-      resultElement.text = res
-
-  resultDom = xml.dom.minidom.parseString(ET.tostring(resultTree,method='xml').decode('utf-8')) # or xml.dom.minidom.parseString(xml_string)
+# return pretty output string of the XML tree
+def _prettyOutput(xml_string):
+  resultDom = xml.dom.minidom.parseString(xml_string) # or xml.dom.minidom.parseString(xml_string)
   pretty_xml_as_string = resultDom.toprettyxml()
-
   return pretty_xml_as_string
 
-if __name__=="__main__":
-  import sys
-  import os
-  sys.path.append(os.path.join(os.getcwd(),'Xpath-for-json-and-MongoDB'))
-  from parse_process.parse import *
+# build the XML Tree from result list, return a string
+def buildXMLResult(resultList,projection,tag=True):
+    resultTree = ET.Element("result")
+    for res in resultList:
+      if tag:
+        resultTag = list(projection.keys())[0].split('.')[-1]
+        resultElement = ET.SubElement(resultTree,resultTag)
+      else:      
+        # count and text only has one element in the list
+        resultElement = resultTree
+      resultElement.text = res
 
-  # MongoDB database.collection
-  database = 'test'
-  collection = 'library'
+    return ET.tostring(resultTree).decode("utf-8")
 
-  # Xpath query for test
-  # XpathQuery = "child::library/child::album/child::artists/child::artist[child::name='Anang Ashanty']/child::name"
-  # XpathQuery = "count(child::library/child::album[child::artists/child::artist/child::name='Anang Ashanty']/child::songs/child::song/child::title)"
-  # XpathQuery = "child::library/child::album[child::artists/child::artist/child::name='Anang Ashanty']/child::genres/child::genre/text()"
-  # XpathQuery = "child::library/child::album[child::artists/child::artist/child::name='Anang Ashanty']/child::genres/child::genre/text()"
-  # XpathQuery = "child::library/child::album[child::year>=1990 or child::year<=2000]/child::artists/child::artist[child::country='Indonesia']/child::name" # Xpath:3 objects, MonggoDB: 4 objects Anggun
-  XpathQuery = "child::library/child::album[child::artists[child::artist/child::name='Anang Ashanty']]/child::artists/child::artist[child::country='Indonesia']/child::name/child::text()"
+def finalOutput(cursor,projection,operator,pretty=True):
+  # fetch result
+  if isinstance(cursor,list) or isinstance(cursor,int):
+    result = cursor # result is already a dumped string list
+  else:
+    result = eval(dumps(list(cursor)))
 
-  # Our result
-  (sanitized_query, function) = data_preprocess(XpathQuery)
-  filter = parse_to_MongoDB_Query_filter("", sanitized_query)
-  projection = parse_to_MongoDB_Query_projection(sanitized_query)
-  cursor = ApplyMongoDBQuery(database, collection, filter, projection, function)
-  # result = eval(dumps(list(cursor)))
-  xml_result = finalOutput(cursor,projection,function)
-  # xml_result = dicttoxml.dicttoxml(result)  
-  print("Final result:",xml_result)
+  # parse result
+  resultList = []
+  tag = True
+  # switch the ouput type
+  if operator == 'count':
+    tag = False
+    resultList.append(str(handleCount(projection,result)))
+  elif operator == 'text':
+    tag = False
+    text = handleText(projection,result)
+    resultList.append('\n'.join(text)+'\n')
+  else:
+    resultList = _parseNodes(result,projection)
+
+  # build XML tree
+  resultTree = buildXMLResult(resultList,projection,tag)
+  if pretty:
+    resultTree = _prettyOutput(resultTree)
+
+  return resultTree
