@@ -1,7 +1,7 @@
 '''
 Transfer output into XML string
 '''
-from handle_functions import handleCount, handleText
+from output_preprocess.handle_functions import handleCount, handleText
 from bson.json_util import dumps
 import xml.etree.ElementTree as ET
 import xml.dom.minidom

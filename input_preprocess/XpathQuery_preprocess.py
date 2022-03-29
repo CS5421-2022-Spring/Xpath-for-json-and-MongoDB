@@ -1,8 +1,8 @@
 import pymongo
 import re
 
-from handle_descendant import convert_all_descendant_to_child
-from handle_concise import short_hand_convert_to_full_path
+from input_preprocess.handle_descendant import convert_all_descendant_to_child
+from input_preprocess.handle_concise import short_hand_convert_to_full_path
 
 # returns a list of tuples (sanitized XPath query, function name)
 def data_preprocess(XpathQuery, isFullPath, database, collection):
