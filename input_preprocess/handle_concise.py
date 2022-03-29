@@ -5,7 +5,7 @@ def short_hand_convert_to_full_path(short_hand_path):
     pattern3 = re.compile('^and\s[a-z]+')
     pattern4 = re.compile('^or\s[a-z]+')
     pattern5 = re.compile('^\[[a-z]+')
-    pattern6 = re.compile('//[a-z]+')
+    pattern6 = re.compile('^//[a-z]+')
     patterns = [pattern1,pattern2,pattern3,pattern4,pattern5,pattern6]
     pointer = 0
     full_path = ""
