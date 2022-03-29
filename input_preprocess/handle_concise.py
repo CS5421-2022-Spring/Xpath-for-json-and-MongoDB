@@ -17,7 +17,7 @@ def short_hand_convert_to_full_path(short_hand_path):
                 find = 1
                 result = result.span()
                 full_path = full_path + short_hand_path[pointer:result[0]]
-                print(result)
+                # print(result)
                 if i == 0:
                     full_path = full_path + "child::" + short_hand_path[pointer + result[0]: pointer + result[1]-1]
                     pointer = pointer + result[1] - 1
@@ -40,5 +40,5 @@ def short_hand_convert_to_full_path(short_hand_path):
         if not find:
             full_path += short_hand_path[pointer]
             pointer += 1
-    print(full_path)
+    # print(full_path)
     return full_path
