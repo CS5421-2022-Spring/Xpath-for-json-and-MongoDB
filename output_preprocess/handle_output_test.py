@@ -41,7 +41,7 @@ class handle_output_TestCase(unittest.TestCase):
       {'title': 'Hujanpun Menangis'}]}}}}]
     projection = {'library.album.songs.song.title': 1}
     xml_result = finalOutput(resultList,projection,operator="text",pretty=False)
-    self.assertEqual(xml_result, "<result>Timang-TimangMiliki DirikuBua HatiSeparuh Jiwaku PergiBelajarlah Untuk CintaHujanpun Menangis</result>")
+    self.assertEqual(xml_result, "<result>Timang-Timang,Miliki Diriku,Bua Hati,Separuh Jiwaku Pergi,Belajarlah Untuk Cinta,Hujanpun Menangis</result>")
 
   # =====================nodes=====================
   def test_case3(self):

@@ -77,7 +77,7 @@ def finalOutput(cursor,projection,operator,pretty=True):
   elif operator == 'text':
     tag = False
     text = handleText(projection,result)
-    resultList.append(''.join(text))
+    resultList.append(','.join(text))
   else:
     resultList = _parseNodes(result,projection)
 
