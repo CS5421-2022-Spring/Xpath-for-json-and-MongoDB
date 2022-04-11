@@ -4,4 +4,4 @@
 2. Load data collection
    `mongoimport --db test --collection library test-library.json --jsonArray`
 3. Run test in main function
-   Use IDE debug or `python parse.py` to run the test cases in main function.
+   Use IDE or `python main.py` to run the test cases in main function.
